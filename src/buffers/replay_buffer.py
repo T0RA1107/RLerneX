@@ -3,7 +3,7 @@ from typing import Union
 
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Int, Bool
+from jaxtyping import Array, Bool, Float, Int
 
 from .base import BaseBuffer
 

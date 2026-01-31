@@ -1,5 +1,6 @@
 """Multi-layer perceptron Q-network using Flax."""
 from typing import Callable, Sequence
+
 import jax.numpy as jnp
 from flax import linen as nn
 

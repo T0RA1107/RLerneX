@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Bool
+from jaxtyping import Array, Bool, Float, Int
 
 
 @jax.jit
@@ -29,7 +29,7 @@ def generalized_advantage_estimation(
     dones = dones.astype(jnp.float32)
     last_gae_lam = jnp.zeros(n_env)
 
-    def trace(last_gae_lam: Float[Array, " n_env"], t: jnp.int32):
+    def trace(last_gae_lam: Float[Array, " n_env"], t: Int[Array, " T"]):
         non_terminal = 1.0 - dones[:, t]
         delta = rewards[:, t] + discount_gamma * next_values[:, t] * non_terminal - values[:, t]
         last_gae_lam = delta + discount_gamma * lambda_ * non_terminal * last_gae_lam

@@ -1,7 +1,8 @@
 """WandB logging utilities for experiment tracking."""
+from typing import Any, Optional
+
 import wandb
 from omegaconf import DictConfig, OmegaConf
-from typing import Dict, Any, Optional
 
 
 def init_wandb(cfg: DictConfig) -> Optional[wandb.Run]:
@@ -31,7 +32,7 @@ def init_wandb(cfg: DictConfig) -> Optional[wandb.Run]:
     return run
 
 
-def log_metrics(metrics: Dict[str, Any], step: int, enabled: bool = True) -> None:
+def log_metrics(metrics: dict[str, Any], step: int, enabled: bool = True) -> None:
     """Log metrics to WandB.
 
     Args:

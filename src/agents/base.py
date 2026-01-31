@@ -1,5 +1,6 @@
 """Base agent abstract class for RL algorithms."""
 from abc import ABC, abstractmethod
+
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float

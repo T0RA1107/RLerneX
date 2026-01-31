@@ -6,14 +6,14 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import hydra
-from omegaconf import DictConfig
 import jax
 import jax.numpy as jnp
 from loguru import logger
+from omegaconf import DictConfig
 from pyinstrument import Profiler
 
 from src.utils.logger import init_logger
-from src.utils.wandb_logger import init_wandb, log_metrics, finish_wandb
+from src.utils.wandb_logger import finish_wandb, init_wandb, log_metrics
 
 
 class RLTrainer:

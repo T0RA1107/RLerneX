@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Bool
+from jaxtyping import Array, Bool, Float
 
 
 class BaseBuffer(ABC):

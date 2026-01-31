@@ -1,12 +1,12 @@
 """Gymnax environment wrapper for consistent interface."""
 from pathlib import Path
+from typing import Any, Tuple, Union
 
+import gymnax
 import jax
 import jax.numpy as jnp
 import numpy as np
-import gymnax
 from gymnax.visualize import Visualizer
-from typing import Tuple, Any, Union
 
 
 class GymnaxWrapper:

@@ -1,11 +1,12 @@
 """A2C (Advantage Actor-Critic) agent for continuous action spaces."""
+import pickle
+
 import hydra
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Bool
 import optax
-import pickle
 from flax.training import train_state
+from jaxtyping import Array, Bool, Float
 from omegaconf import DictConfig
 
 from src.agents.base import BaseAgent

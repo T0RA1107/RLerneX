@@ -1,7 +1,8 @@
 """Actor-Critic networks for continuous action spaces."""
-import jax.numpy as jnp
+from typing import Callable, Sequence
+
 import flax.linen as nn
-from typing import Callable, Sequence, Tuple
+import jax.numpy as jnp
 
 
 class GaussianActor(nn.Module):
@@ -21,7 +22,7 @@ class GaussianActor(nn.Module):
     log_std_max: float = 2.0
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def __call__(self, x: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
         """Forward pass.
 
         Args:

@@ -1,5 +1,5 @@
-from omegaconf import DictConfig
 from loguru import logger
+from omegaconf import DictConfig
 
 
 def init_logger(cfg: DictConfig):

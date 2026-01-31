@@ -1,13 +1,14 @@
 """DQN agent implementation using JAX, Flax, and rlax."""
+import pickle
+
 import hydra
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Int, Bool
+import optax
 import rlax
 from flax.training import train_state
+from jaxtyping import Array, Bool, Float, Int
 from omegaconf import DictConfig
-import optax
-import pickle
 
 from src.agents.base import BaseAgent
 from src.buffers.replay_buffer import ReplayBuffer

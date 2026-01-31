@@ -1,6 +1,6 @@
 """Rollout buffer for on-policy algorithms (A2C)."""
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Bool
+from jaxtyping import Array, Bool, Float
 
 from .base import BaseBuffer
 
