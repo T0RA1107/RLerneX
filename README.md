@@ -49,10 +49,14 @@ RLerneX/
 ```
 
 ## Installation
-
-
+Install dependencies.
 ```bash
 uv sync
+```
+Install pre-commit
+```bash
+sudo apt install pre-commit
+uv run pre-commit install
 ```
 
 ## Quick Start
