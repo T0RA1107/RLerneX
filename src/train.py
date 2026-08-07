@@ -1,4 +1,5 @@
 """Training script for RL agents."""
+
 import sys
 from pathlib import Path
 
@@ -99,9 +100,7 @@ class RLTrainer:
             # Select action
             rng = jax.random.split(self.rng, n_env + 1)
             self.rng, action_rng = rng[0], rng[1:]
-            normed_action = self.agent.select_action(
-                obs, action_rng, training=training
-            )
+            normed_action = self.agent.select_action(obs, action_rng, training=training)
 
             # Clip action to bounds (continuous)
             if self.environment.is_continuous_action:
@@ -117,10 +116,16 @@ class RLTrainer:
                 env_state, action, step_rng
             )
 
-            # Store in  buffer
+            # Store in buffer
             if training:
+                log_prob = self.agent.compute_log_prob(obs, normed_action)
                 self.agent.buffer.add(
-                    obs, normed_action, reward, next_obs, done
+                    obs,
+                    normed_action,
+                    reward / 100,
+                    next_obs,
+                    env_info["terminated"],
+                    log_prob=log_prob,
                 )
 
             # Update state
@@ -195,7 +200,8 @@ class RLTrainer:
         for episode in range(1, self.num_episodes + 1):
             # Run training episode
             episode_reward, episode_length, loss_info = self.run_episode(
-                n_env=self.agent.n_env, training=True)
+                n_env=self.agent.n_env, training=True
+            )
 
             # Decay epsilon
             self.agent.decay_epsilon()
@@ -212,9 +218,9 @@ class RLTrainer:
             }
 
             # Add agent-specific metrics (DQN has epsilon and buffer)
-            if hasattr(self.agent, 'epsilon'):
+            if hasattr(self.agent, "epsilon"):
                 train_metrics["train/epsilon"] = self.agent.epsilon
-            if hasattr(self.agent, 'buffer'):
+            if hasattr(self.agent, "buffer"):
                 train_metrics["train/buffer_size"] = len(self.agent.buffer)
 
             train_metrics.update(loss_info)
@@ -229,10 +235,11 @@ class RLTrainer:
                     f"Mean(10): {mean_reward:.2f} | "
                 )
                 if "loss/total" in loss_info:
-                    log_str += f"Loss: {loss_info['loss/total']:.4f} | "
-                if hasattr(self.agent, 'epsilon'):
+                    for loss_name, loss_value in loss_info.items():
+                        log_str += f"{loss_name}: {loss_value:.4f} | "
+                if hasattr(self.agent, "epsilon"):
                     log_str += f" | Epsilon: {self.agent.epsilon:.3f}"
-                if hasattr(self.agent, 'buffer'):
+                if hasattr(self.agent, "buffer"):
                     log_str += f" | Buffer: {len(self.agent.buffer)}"
                 logger.info(log_str)
 

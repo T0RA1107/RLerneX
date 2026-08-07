@@ -1,4 +1,5 @@
 """Gymnax environment wrapper for consistent interface."""
+
 from pathlib import Path
 from typing import Any, Tuple, Union
 
@@ -29,11 +30,13 @@ class GymnaxWrapper:
         self.env, self.env_params = gymnax.make(env_name, **self.env_kwargs)
 
         # Vectorized methods (vmap over batch dimension)
-        self._vmap_reset = jax.vmap(
-            lambda rng: self.env.reset(rng, self.env_params)
-        )
+        self._vmap_reset = jax.vmap(lambda rng: self.env.reset(rng, self.env_params))
+        # step_env (not step) so next_obs at episode end is the true successor
+        # observation rather than gymnax's auto-reset observation
         self._vmap_step = jax.vmap(
-            lambda state, action, rng: self.env.step(rng, state, action, self.env_params)
+            lambda state, action, rng: self.env.step_env(
+                rng, state, action, self.env_params
+            )
         )
 
         # Rendering state
@@ -53,10 +56,7 @@ class GymnaxWrapper:
         return obs, state
 
     def step(
-        self,
-        state: Any,
-        action: Union[int, jnp.ndarray],
-        rng: jax.random.PRNGKey
+        self, state: Any, action: Union[int, jnp.ndarray], rng: jax.random.PRNGKey
     ) -> Tuple[jnp.ndarray, Any, float, bool, dict]:
         """Execute one step (vectorized).
 
@@ -72,6 +72,13 @@ class GymnaxWrapper:
             self._states.append(state)
 
         next_obs, next_state, reward, done, info = self._vmap_step(state, action, rng)
+        # A done at the step limit is a truncation, not a true termination;
+        # value bootstrapping should continue through truncations
+        truncated = jnp.logical_and(
+            done, state.time + 1 >= self.env_params.max_steps_in_episode
+        )
+        info["truncated"] = truncated
+        info["terminated"] = jnp.logical_and(done, jnp.logical_not(truncated))
         return next_obs, next_state, reward, done, info
 
     def start_recording(self) -> None:
@@ -100,7 +107,7 @@ class GymnaxWrapper:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         states = []
         for state in self._states:
-            first_state  = jax.tree_util.tree_map(lambda x: x[0], state)
+            first_state = jax.tree_util.tree_map(lambda x: x[0], state)
             states.append(first_state)
 
         vis = Visualizer(self.env, self.env_params, states)
@@ -134,7 +141,9 @@ class GymnaxWrapper:
     @property
     def is_continuous_action(self) -> bool:
         """Check if action space is continuous."""
-        return isinstance(self.env.action_space(self.env_params), gymnax.environments.spaces.Box)
+        return isinstance(
+            self.env.action_space(self.env_params), gymnax.environments.spaces.Box
+        )
 
     @property
     def action_dim(self) -> int:
