@@ -1,0 +1,19 @@
+_target_: src.agents.ppo.PPOAgent
+_recursive_: False
+network_cfg:
+  actor: ${network.actor}
+  critic: ${network.critic}
+optimizer_cfg: ${optimizer}
+n_env: 16
+batch_size: 3200
+minibatch_size: 64
+internal_epoch: 10
+learning_starts: 3200
+norm_advantages: true
+discount_gamma: 0.9
+gae_lambda: 0.95
+clip_eps: 0.2
+entropy_coef: 0.001
+value_loss_coef: 1
+max_grad_norm: 0.5
+seed: ${seed}
