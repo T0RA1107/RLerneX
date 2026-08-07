@@ -1,4 +1,5 @@
 """Experience replay buffer for off-policy RL algorithms."""
+
 from typing import Union
 
 import jax
@@ -41,8 +42,7 @@ class ReplayBuffer(BaseBuffer):
             self.actions = jnp.zeros((n_env, buffer_size), dtype=jnp.int32)
         else:
             self.actions = jnp.zeros(
-                (n_env, buffer_size, action_dim),
-                dtype=jnp.float32
+                (n_env, buffer_size, action_dim), dtype=jnp.float32
             )
         self.rewards = jnp.zeros((n_env, buffer_size))
         self.next_observations = jnp.zeros((n_env, buffer_size, observation_dim))
@@ -62,6 +62,7 @@ class ReplayBuffer(BaseBuffer):
         reward: Float[Array, " n_env"],
         next_observation: Float[Array, "n_env ..."],
         done: Bool[Array, " n_env"],
+        log_prob: Float[Array, " n_env"] | None = None,
     ) -> None:
         """Add a transition to the buffer.
 
@@ -75,14 +76,18 @@ class ReplayBuffer(BaseBuffer):
         self.observations = self.observations.at[:, self.position].set(observation)
         self.actions = self.actions.at[:, self.position].set(action)
         self.rewards = self.rewards.at[:, self.position].set(reward)
-        self.next_observations = self.next_observations.at[:, self.position].set(next_observation)
+        self.next_observations = self.next_observations.at[:, self.position].set(
+            next_observation
+        )
         self.dones = self.dones.at[:, self.position].set(done)
 
         self.position = (self.position + 1) % self.buffer_size
         self.size = min(self.size + 1, self.buffer_size)
 
     @staticmethod
-    def get_range(buffer_size: int, start: Int[Array, " n_env"], size: int) -> Int[Array, ""]:
+    def get_range(
+        buffer_size: int, start: Int[Array, " n_env"], size: int
+    ) -> Int[Array, ""]:
         return start + jnp.arange(size) % buffer_size
 
     def get_batch(self, batch_size: int) -> dict[str, jnp.ndarray]:
@@ -95,7 +100,9 @@ class ReplayBuffer(BaseBuffer):
             Dictionary containing batch of transitions
         """
         self.rng, sample_rng = jax.random.split(self.rng)
-        maxval = self.size - batch_size if self.size < self.buffer_size else self.buffer_size
+        maxval = (
+            self.size - batch_size if self.size < self.buffer_size else self.buffer_size
+        )
         indices = jax.random.randint(
             sample_rng,
             shape=(batch_size,),

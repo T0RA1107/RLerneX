@@ -3,7 +3,7 @@ actor:
   hidden_dims: [64, 64]
   activation:
     _target_: hydra.utils.get_method
-    path: src.networks.activation.mish  # flax.linen.relu
+    path: flax.linen.tanh # src.networks.activation.mish  # flax.linen.relu
   log_std_min: -5
   log_std_max: 2
 critic:
@@ -11,4 +11,4 @@ critic:
   hidden_dims: [64, 64]
   activation:
     _target_: hydra.utils.get_method
-    path: src.networks.activation.mish  #flax.linen.relu
+    path: flax.linen.tanh # src.networks.activation.mish  #flax.linen.relu

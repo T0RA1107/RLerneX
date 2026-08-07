@@ -1,4 +1,5 @@
 """Base agent abstract class for RL algorithms."""
+
 from abc import ABC, abstractmethod
 
 import jax
@@ -14,7 +15,7 @@ class BaseAgent(ABC):
         self,
         observation: Float[Array, "n_env ..."],
         rng: jax.random.PRNGKey,
-        training: bool = True
+        training: bool = True,
     ) -> Float[Array, "n_env action_dim"]:
         """Select an action given an observation.
 
@@ -48,7 +49,6 @@ class BaseAgent(ABC):
         """
         pass
 
-    @property
     @abstractmethod
     def check_action_type(self, action_type: str) -> None:
         """Check if the action type is compatible with the agent.
@@ -85,3 +85,19 @@ class BaseAgent(ABC):
             path: File path to load parameters from
         """
         pass
+
+    def compute_log_prob(
+        self,
+        observation: Float[Array, "n_env ..."],
+        action: Float[Array, "n_env action_dim"],
+    ) -> Float[Array, " n_env"] | None:
+        """Compute log probability of action under current policy.
+
+        Args:
+            observation: Current observation
+            action: Action taken
+
+        Returns:
+            Log probability per environment, or None if not supported
+        """
+        return None

@@ -19,6 +19,7 @@ class BaseBuffer(ABC):
         reward: Float[Array, " n_env"],
         next_observation: Float[Array, "n_env ..."],
         done: Bool[Array, " n_env"],
+        log_prob: Float[Array, " n_env"] | None = None,
     ):
         pass
 

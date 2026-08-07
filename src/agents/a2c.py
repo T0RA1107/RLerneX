@@ -1,4 +1,5 @@
 """A2C (Advantage Actor-Critic) agent for continuous action spaces."""
+
 import pickle
 
 import hydra
@@ -71,12 +72,9 @@ class A2CAgent(BaseAgent):
 
         # Networks
         self.actor_network = hydra.utils.instantiate(
-            network_cfg.actor,
-            action_dim=action_dim
+            network_cfg.actor, action_dim=action_dim
         )
-        self.critic_network = hydra.utils.instantiate(
-            network_cfg.critic
-        )
+        self.critic_network = hydra.utils.instantiate(network_cfg.critic)
 
         # Initialize networks
         self.rng, actor_rng, critic_rng = jax.random.split(self.rng, 3)
@@ -113,7 +111,7 @@ class A2CAgent(BaseAgent):
         self,
         observation: Float[Array, "n_env ..."],
         rng: jax.random.PRNGKey,
-        training: bool = True
+        training: bool = True,
     ) -> Float[Array, "n_env action_dim"]:
         """Select action from Gaussian policy.
 
@@ -129,7 +127,7 @@ class A2CAgent(BaseAgent):
             self.actor_state,
             observation,
             jax.vmap(lambda k: jax.random.normal(k, self.action_dim))(rng),
-            jnp.array(float(training))
+            jnp.array(float(training)),
         )
 
     @staticmethod
@@ -138,20 +136,20 @@ class A2CAgent(BaseAgent):
         actor_state: train_state.TrainState,
         observation: Float[Array, "n_env ..."],
         z: Float[Array, "n_env action_dim"],
-        training: Float[Array, ""]
+        training: Float[Array, ""],
     ):
         mean, log_std = actor_state.apply_fn(actor_state.params, observation)
 
         std = jnp.exp(log_std)
         action = mean + std * z * training
-        action = jnp.tanh(action)
+        # action = jnp.tanh(action)
         return action
 
     @staticmethod
     def _gaussian_log_prob(
         action: Float[Array, "... action_dim"],
         mean: Float[Array, "... action_dim"],
-        log_std: Float[Array, "... action_dim"]
+        log_std: Float[Array, "... action_dim"],
     ) -> Float[Array, "..."]:
         """Compute log probability of action under Gaussian.
 
@@ -165,9 +163,7 @@ class A2CAgent(BaseAgent):
         """
         var = jnp.exp(2 * log_std)
         log_prob = -0.5 * (
-            jnp.square(action - mean) / var
-            + 2 * log_std
-            + jnp.log(2 * jnp.pi)
+            jnp.square(action - mean) / var + 2 * log_std + jnp.log(2 * jnp.pi)
         )
         return jnp.sum(log_prob, axis=-1)
 
@@ -242,7 +238,9 @@ class A2CAgent(BaseAgent):
         """
         # Compute values for current and next states
         values = critic_state.apply_fn(critic_state.params, observations).squeeze()
-        next_values = critic_state.apply_fn(critic_state.params, next_observations).squeeze()
+        next_values = critic_state.apply_fn(
+            critic_state.params, next_observations
+        ).squeeze()
 
         advantages = generalized_advantage_estimation(
             rewards=rewards,
@@ -262,7 +260,7 @@ class A2CAgent(BaseAgent):
             norm_advantages,
             lambda x: (x - jnp.mean(x)) / (jnp.std(x) + 1e-8),
             lambda x: x,
-            advantages
+            advantages,
         )
 
         def actor_loss_fn(actor_params):
@@ -271,7 +269,9 @@ class A2CAgent(BaseAgent):
 
             policy_loss = -jnp.mean(log_probs * jax.lax.stop_gradient(advantages))
 
-            entropy = jnp.mean(jnp.sum(log_std + 0.5 * jnp.log(2 * jnp.pi * jnp.e), axis=-1))
+            entropy = jnp.mean(
+                jnp.sum(log_std + 0.5 * jnp.log(2 * jnp.pi * jnp.e), axis=-1)
+            )
 
             actor_loss = policy_loss - entropy_coef * entropy
 
@@ -280,16 +280,22 @@ class A2CAgent(BaseAgent):
         def critic_loss_fn(critic_params):
             values = critic_state.apply_fn(critic_params, observations).squeeze()
 
-            critic_loss = jnp.mean(jnp.square(values - jax.lax.stop_gradient(td_target)))
+            critic_loss = jnp.mean(
+                jnp.square(values - jax.lax.stop_gradient(td_target))
+            )
 
             return critic_loss
 
         # Actor gradients and update
-        (actor_loss, entropy), actor_grads = jax.value_and_grad(actor_loss_fn, has_aux=True)(actor_state.params)
+        (actor_loss, entropy), actor_grads = jax.value_and_grad(
+            actor_loss_fn, has_aux=True
+        )(actor_state.params)
         actor_state = actor_state.apply_gradients(grads=actor_grads)
 
         # Critic gradients and update
-        critic_loss, critic_grads = jax.value_and_grad(critic_loss_fn)(critic_state.params)
+        critic_loss, critic_grads = jax.value_and_grad(critic_loss_fn)(
+            critic_state.params
+        )
         critic_state = critic_state.apply_gradients(grads=critic_grads)
 
         losses = {
@@ -302,7 +308,9 @@ class A2CAgent(BaseAgent):
         return actor_state, critic_state, losses
 
     def check_action_type(self, action_type: str) -> None:
-        assert action_type == "continuous", "A2CAgent only supports continuous action spaces."
+        assert action_type == "continuous", (
+            "A2CAgent only supports continuous action spaces."
+        )
 
     @property
     def isonpolicy(self) -> bool:
