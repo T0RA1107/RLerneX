@@ -82,6 +82,37 @@ of the trust-region constraint of TRPO.
   <https://arxiv.org/abs/2006.05990>
   Large-scale study; source of recommendations on epoch count, minibatch count, advantage normalisation and action distribution.
 
+## Validation on tasks other than Pendulum
+
+Gymnax exposes four continuous-action environments besides Pendulum. Three of them were run
+(2026-09-22) with one shared PPO configuration - 16 environments x 100-step rollouts (`batch_size=1600`,
+`learning_starts=1600`), minibatch 64, 10 epochs, gamma 0.99, everything else as in `configs/agent/ppo.yaml` -
+see `scripts/train_reacher_ppo.sh`, `scripts/train_swimmer_ppo.sh`, `scripts/train_mountain_car_ppo.sh`.
+
+| Environment | Steps | Reward | Random policy | PPO final / best eval | Outcome |
+|---|---|---|---|---|---|
+| Pendulum-v1 (reference) | 200 | dense | −1183 | −125 / −114 | solved |
+| Reacher-misc | 100 | dense, exp(−d²) to the goal | 18.7 | 33.2 / 46.9 | learns |
+| Swimmer-misc | 500 | dense, goal proximity x urchin penalty | 79.4 | 352 / 462 | learns |
+| MountainCarContinuous-v0 | ≤999 | −0.1a² per step, +100 at the goal | −16.7 | −0.00 / −0.00 | local optimum |
+
+Random baselines are 32 episodes of uniform actions; PPO numbers are the 10-episode deterministic evaluation.
+
+- Reacher and Swimmer confirm that the tanh-squashed Gaussian policy works outside Pendulum, on
+  2-dimensional action spaces and on both a 100-step and a 500-step horizon, with no NaN and no
+  late-training collapse.
+- MountainCarContinuous converges to the well-known local optimum of the task: the action cost −0.1a²
+  is minimised by doing nothing (return ≈ 0, better than random −16.7), and the +100 bonus is never
+  observed because undirected Gaussian noise does not reach the flag. The trained policy applies
+  |a| ≈ 0.005 and the car never leaves position [−0.63, −0.42] (goal 0.45). A ten-fold entropy
+  coefficient (0.01) does not change the outcome. Escaping this needs correlated exploration or an
+  exploration bonus rather than a change to PPO.
+- PointRobot-misc was not used: the goal is not part of the observation, so it is a POMDP that a
+  memoryless MLP policy cannot solve.
+- Caveat for environments that terminate early: `RLTrainer.run_episode` ends an episode as soon as
+  *any* parallel environment is done, and an update only runs once the buffer holds `learning_starts`
+  transitions. An episode that ends before the rollout is full therefore contributes no update at all.
+
 ## Notes
 
 - Divergence mechanism observed with the unsquashed policy: as the policy std shrinks and the unbounded mean moves outside
