@@ -153,9 +153,8 @@ class PPOAgent(BaseAgent):
         mean, log_std = actor_state.apply_fn(actor_state.params, observation)
 
         std = jnp.exp(log_std)
-        action = mean + std * z * training
-        # action = jnp.tanh(action)
-        return action
+        pre_tanh_action = mean + std * z * training
+        return jnp.tanh(pre_tanh_action)
 
     def compute_log_prob(
         self,
@@ -181,21 +180,30 @@ class PPOAgent(BaseAgent):
         mean: Float[Array, "... action_dim"],
         log_std: Float[Array, "... action_dim"],
     ) -> Float[Array, "..."]:
-        """Compute log probability of action under Gaussian.
+        """Compute log probability of a tanh-squashed Gaussian action.
+
+        The stored action is ``a = tanh(u)`` with ``u ~ N(mean, std)``. The
+        pre-tanh sample is recovered via ``atanh`` and the change-of-variables
+        term ``-sum(log(1 - tanh(u)^2))`` is added, using the numerically stable
+        form ``log(1 - tanh(u)^2) = 2 * (log 2 - u - softplus(-2u))``.
 
         Args:
-            action: Action taken
-            mean: Mean of Gaussian
-            log_std: Log standard deviation
+            action: Squashed action taken, in (-1, 1)
+            mean: Mean of the pre-tanh Gaussian
+            log_std: Log standard deviation of the pre-tanh Gaussian
 
         Returns:
             Log probability
         """
+        eps = 1e-6
+        pre_tanh_action = jnp.arctanh(jnp.clip(action, -1 + eps, 1 - eps))
         var = jnp.exp(2 * log_std)
         log_prob = -0.5 * (
-            jnp.square(action - mean) / var + 2 * log_std + jnp.log(2 * jnp.pi)
+            jnp.square(pre_tanh_action - mean) / var + 2 * log_std + jnp.log(2 * jnp.pi)
         )
-        # log_prob -= jnp.log(1 - action ** 2 + 1e-8)
+        log_prob -= 2 * (
+            jnp.log(2.0) - pre_tanh_action - jax.nn.softplus(-2 * pre_tanh_action)
+        )
         return jnp.sum(log_prob, axis=-1)
 
     def update(self, batch: dict[str, jnp.ndarray]) -> dict[str, float]:
