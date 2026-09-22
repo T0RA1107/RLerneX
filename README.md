@@ -159,6 +159,8 @@ Ensure you use the correct algorithm for your environment:
 
 ## References
 
+Per-algorithm paper notes (original papers + papers behind implementation choices) live in [`docs/`](docs/README.md).
+
 - [JAX Documentation](https://jax.readthedocs.io/)
 - [Flax Documentation](https://flax.readthedocs.io/)
 - [rlax Documentation](https://github.com/google-deepmind/rlax)
