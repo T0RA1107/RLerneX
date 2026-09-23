@@ -1,0 +1,3 @@
+_target_: src.environments.gymnax_wrapper.GymnaxWrapper
+env_name: "PointRobot-misc"
+env_kwargs: {}
