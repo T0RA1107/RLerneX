@@ -53,7 +53,7 @@ class GymnaxWrapper:
             Tuple of (observations, states) with batch dimension
         """
         obs, state = self._vmap_reset(rng)
-        return obs, state
+        return self._flatten_obs(obs), state
 
     def step(
         self, state: Any, action: Union[int, jnp.ndarray], rng: jax.random.PRNGKey
@@ -72,6 +72,7 @@ class GymnaxWrapper:
             self._states.append(state)
 
         next_obs, next_state, reward, done, info = self._vmap_step(state, action, rng)
+        next_obs = self._flatten_obs(next_obs)
         # A done at the step limit is a truncation, not a true termination;
         # value bootstrapping should continue through truncations
         truncated = jnp.logical_and(
@@ -80,6 +81,21 @@ class GymnaxWrapper:
         info["truncated"] = truncated
         info["terminated"] = jnp.logical_and(done, jnp.logical_not(truncated))
         return next_obs, next_state, reward, done, info
+
+    @staticmethod
+    def _flatten_obs(obs: jnp.ndarray) -> jnp.ndarray:
+        """Flatten batched observations to (n_env, observation_dim).
+
+        Image-based environments (MinAtar, Catch, Pong) return multi-dimensional
+        observations; the agents and buffers expect a flat feature vector.
+
+        Args:
+            obs: Batched observations of shape (n_env, *obs_shape)
+
+        Returns:
+            Observations of shape (n_env, prod(obs_shape)) as float32
+        """
+        return obs.reshape(obs.shape[0], -1).astype(jnp.float32)
 
     def start_recording(self) -> None:
         """Start recording environment states for video generation."""
@@ -121,9 +137,9 @@ class GymnaxWrapper:
         """Get the observation space dimension.
 
         Returns:
-            Dimension of observation space
+            Dimension of the flattened observation space
         """
-        return self.env.observation_space(self.env_params).shape[0]
+        return int(np.prod(self.env.observation_space(self.env_params).shape))
 
     def get_action_space(self) -> int:
         """Get the action space dimension.
